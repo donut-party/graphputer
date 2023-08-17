@@ -19,8 +19,9 @@
    :nodes
    {:validate
     {:pute    (fn [user-params]
-                (when-let [validation-errors (validate user-params)]
-                  [::puter/fail validation-errors]))
+                (if-let [validation-errors (validate user-params)]
+                  [::puter/fail validation-errors]
+                  user-params))
      ;; the vector [::puter/fail ...] tells graphputer to follow
      ;; the :fail branch
      :success :insert-user
