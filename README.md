@@ -68,6 +68,15 @@ You can write something like this:
 (puter/execute user-signup-graph {:username "newuser"})
 ```
 
+```mermaid
+graph TB
+  :validate -->|:success| :insert-user
+  :validate -->|:fail| :validate-failed
+  :insert-user -->|:success| :user-signup-success
+  :insert-user -->|:fail| :insert-user-failed
+  classDef default ry:5,rx:5
+```
+
 ## Uh, why?
 
 Why would anyone want to do this? Honestly, it might be a bad idea. You tell me!
