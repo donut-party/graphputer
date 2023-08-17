@@ -120,3 +120,7 @@ the example above, `:user-signup-success` gets called with the value returned by
 
 If `:success` or `:fail` isn't defined, then execution stops and the last
 computed value is return.
+
+## Isn't this a state machine?
+
+Not really. Unlike a state machine, you don't send it events to advance states.
