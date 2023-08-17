@@ -14,13 +14,13 @@ writing something like this:
 ;; assume `validate` and `insert-user` are defined
 (defn user-signup
   [params]
-  (if-let [validation-errors (validate params)]
+  (if-let [validation-errors (validate params)] 
+    {:status 400
+     :body validation-errors}
     (if-let [user (insert-user params)]
       {:status 200
        :body   user}
-      {:status 500})
-    {:status 400
-     :body validation-errors}))
+      {:status 500})))
      
 (user-signup {:username "newuser"})
 ```
