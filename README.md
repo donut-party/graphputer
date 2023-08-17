@@ -105,6 +105,16 @@ key`, and changes the `:insert-user` node so that its `:success` points to
 `:email-user-signup-success`. The `:email-user-signup-success` node's `:success`
 points to `:user-signup-success`.
 
+```mermaid
+graph TB
+  :validate -->|:success| :insert-user
+  :validate -->|:fail| :validate-failed
+  :insert-user -->|:success| :email-user-signup-success
+  :insert-user -->|:fail| :insert-user-failed
+  :email-user-signup-success -->|:success| :user-signup-success
+  classDef default ry:5,rx:5
+```
+
 Another benefit of this approach is that it opens up possibilities for
 documenting your library. It's possible to visualize the compute graph and put
 it in your readme, making it easier for devs to understand what your lib is
