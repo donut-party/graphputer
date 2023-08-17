@@ -3,6 +3,7 @@
 *.log
 .clj-kondo
 .cpcache
+.dir-locals.el
 .lein-env
 .lein-failures
 .lein-repl-history
