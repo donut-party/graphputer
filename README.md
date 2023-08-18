@@ -37,11 +37,11 @@ You can write something like this:
    {:validate
     {:pute    (fn [user-params]
                 (if-let [validation-errors (validate user-params)]
-                  [::puter/fail validation-errors]
+                  [::puter/goto :fail validation-errors]
                   user-params))
-     ;; the vector [::puter/fail ...] tells graphputer to follow
-     ;; the :fail branch
-     :success :insert-user
+     ;; the vector [::puter/goto :fail new-parameter] tells graphputer to follow
+     ;; the `:fail` branch and to pass in `new-parameter` to that node's `:pute`
+     :default :insert-user
      :fail    :validate-failed}
 
     :validate-failed
@@ -53,8 +53,8 @@ You can write something like this:
     {:pute    (fn [user-params]
                 (if-let [inserted-user (insert-user user-params)]
                   inserted-user
-                  ::puter/fail)) ;; you can also use just ::puter/fail to go to fail branch
-     :success :user-signup-success
+                  [::puter/goto :fail]))
+     :default :user-signup-success
      :fail    :insert-user-failed}
 
     :insert-user-failed
@@ -70,9 +70,9 @@ You can write something like this:
 
 ```mermaid
 graph TB
-  :validate -->|:success| :insert-user
+  :validate -->|:default| :insert-user
   :validate -->|:fail| :validate-failed
-  :insert-user -->|:success| :user-signup-success
+  :insert-user -->|:default| :user-signup-success
   :insert-user -->|:fail| :insert-user-failed
   classDef default ry:5,rx:5
 ```
@@ -101,17 +101,17 @@ successfully inserting their record in your db. You could do that like this:
 ```
 
 This will insert a new computation node under the `:email-user-signup-success
-key`, and changes the `:insert-user` node so that its `:success` points to
-`:email-user-signup-success`. The `:email-user-signup-success` node's `:success`
+key`, and changes the `:insert-user` node so that its `:default` points to
+`:email-user-signup-success`. The `:email-user-signup-success` node's `:default`
 points to `:user-signup-success`.
 
 ```mermaid
 graph TB
-  :validate -->|:success| :insert-user
+  :validate -->|:default| :insert-user
   :validate -->|:fail| :validate-failed
-  :insert-user -->|:success| :email-user-signup-success
+  :insert-user -->|:default| :email-user-signup-success
   :insert-user -->|:fail| :insert-user-failed
-  :email-user-signup-success -->|:success| :user-signup-success
+  :email-user-signup-success -->|:default| :user-signup-success
   classDef default ry:5,rx:5
 ```
 
@@ -128,18 +128,21 @@ named by `:init` and calls its `:pute` function with one argument, the initial
 execution parameter. In the example above, `:validate`'s `:pute` gets called
 with the map `{:username "newuser"}`.
 
-If a `:pute` function returns either `:donut.graphputer/fail` or a vector whose
-first element is `:donut.graphputer/fail`, then execution flow goes to the
-computation node named by `:fail`. So with `:validate`, the `:fail` node would
+If a `:pute` function returns a vector like `[:donut.graphputer/goto node-name
+new-execution-parameter]` then execution flow goes to the computation node named
+by `node-name` and that node gets passed `new-execution-parameter`.
+`new-execution-parameter` is optional; if it isn't supplied then the current
+execution parameter gets passed on. So with `:validate`, the `:fail` node would
 be `:validate-failed`.
 
-Otherwise, execution flow goes to the `:success` node and the next `:pute`
+Otherwise, execution flow goes to the `:default` node and the next `:pute`
 function is called with the return value of the previous `:pute` function. In
 the example above, `:user-signup-success` gets called with the value returned by
 `(insert-user user-params)`.
 
-If `:success` or `:fail` isn't defined, then execution stops and the last
-computed value is return.
+If there isn't another node to goto -- because `:default` isn't defined or
+`[:donut.graphputer/goto ...]` isn't returned, then execution stops and the last
+computed value is returned.
 
 ## Isn't this a state machine?
 

@@ -4,7 +4,7 @@
       :cljs [cljs.test :refer [deftest is] :include-macros true])
    [donut.graphputer :as puter]))
 
-(deftest test-execute-all-success
+(deftest test-execute-all-default
   (is (= {:status 200
           :body   {:username "newuser"}}
          (puter/execute
@@ -13,19 +13,19 @@
            :nodes
            {:validate
             {:pute    (fn [ctx] ctx)
-             :success :insert-user}
+             :default :insert-user}
 
             :insert-user
             {:pute    (fn [ctx] ctx)
-             :success :user-signup-success}
+             :default :user-signup-default}
 
-            :user-signup-success
+            :user-signup-default
             {:pute (fn [ctx]
                      {:status 200
                       :body   ctx})}}}
           {:username "newuser"}))))
 
-(deftest test-execute-keyword-fail
+(deftest test-execute-goto-no-context
   (is (= :validation-failed
          (puter/execute
           {:id   :user-signup
@@ -33,14 +33,14 @@
            :nodes
            {:validate
             {:pute    (fn [_] [::puter/goto :fail])
-             :success :insert-user
+             :default :insert-user
              :fail    :validate-failure}
 
             :validate-failure
             {:pute (fn [_] :validation-failed)}}}
           {}))))
 
-(deftest test-execute-vector-fail
+(deftest test-execute-goto-with-new-context
   (is (= :new-context
          (puter/execute
           {:id   :user-signup
@@ -48,7 +48,7 @@
            :nodes
            {:validate
             {:pute    (fn [_] [::puter/goto :fail :new-context])
-             :success :insert-user
+             :default :insert-user
              :fail    :validate-failure}
 
             :validate-failure
@@ -62,30 +62,28 @@
           :nodes
           {:validate
            {:pute    identity
-            :success :validate-success}
+            :default :validate-success}
 
            ;; this is spliced in in between :validate and :insert-user
            :validate-success
-           {:pute identity
-            :success :insert-user}
+           {:pute    identity
+            :default :insert-user}
 
            :insert-user
            {:pute    identity
-            :success :user-signup-success}}}
+            :default :user-signup-default}}}
          (puter/splice-node
           {:id   :user-signup
            :init :validate
            :nodes
            {:validate
             {:pute    identity
-             :success :insert-user}
+             :default :insert-user}
 
             :insert-user
             {:pute    identity
-             :success :user-signup-success}}}
-
-          :validate-success
-          {:pute identity}
-
-          :validate
-          :success))))
+             :default :user-signup-default}}}
+          {:node-name         :validate-success
+           :node              {:pute identity}
+           :input-node-name   :validate
+           :input-branch-name :default}))))

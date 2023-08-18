@@ -20,11 +20,11 @@
    {:validate
     {:pute    (fn [user-params]
                 (if-let [validation-errors (validate user-params)]
-                  [::puter/fail validation-errors]
+                  [::puter/goto :fail validation-errors]
                   user-params))
-     ;; the vector [::puter/fail ...] tells graphputer to follow
-     ;; the :fail branch
-     :success :insert-user
+     ;; the vector [::puter/goto :fail new-parameter] tells graphputer to follow
+     ;; the `:fail` branch and to pass in `new-parameter` to that node's `:pute`
+     :default :insert-user
      :fail    :validate-failed}
 
     :validate-failed
@@ -36,8 +36,8 @@
     {:pute    (fn [user-params]
                 (if-let [inserted-user (insert-user user-params)]
                   inserted-user
-                  ::puter/fail)) ;; you can also use just ::puter/fail to go to fail branch
-     :success :user-signup-success
+                  [::puter/goto :fail]))
+     :default :user-signup-success
      :fail    :insert-user-failed}
 
     :insert-user-failed
