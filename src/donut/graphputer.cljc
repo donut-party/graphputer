@@ -16,16 +16,16 @@
 (defn execute
   [{:keys [init nodes] :as _graph} ctx]
   (loop [node-name init
-         ctx ctx]
-    (let [{:keys [pute success fail]} (node-name nodes)
-          result (pute ctx)]
+         ctx       ctx]
+    (let [{:keys [pute success] :as node} (node-name nodes)
+          result                          (pute ctx)
+          [goto? branch-name new-ctx]     (when (and (sequential? result)
+                                                     (= ::goto (first result)))
+                                            result)]
+      (prn goto? branch-name new-ctx)
       (cond
-        (= result ::fail)
-        (recur fail ctx)
-
-        (and (sequential? result)
-             (= ::fail (first result)))
-        (recur fail (second result))
+        goto?
+        (recur (branch-name node) new-ctx)
 
         success
         (recur success result)

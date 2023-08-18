@@ -32,7 +32,7 @@
            :init :validate
            :nodes
            {:validate
-            {:pute    (fn [_] ::puter/fail)
+            {:pute    (fn [_] [::puter/goto :fail])
              :success :insert-user
              :fail    :validate-failure}
 
@@ -47,7 +47,7 @@
            :init :validate
            :nodes
            {:validate
-            {:pute    (fn [_] [::puter/fail :new-context])
+            {:pute    (fn [_] [::puter/goto :fail :new-context])
              :success :insert-user
              :fail    :validate-failure}
 
