@@ -35,14 +35,14 @@ You can write something like this:
    :init :validate
    :nodes
    {:validate
-    {:pute    (fn [user-params]
-                (if-let [validation-errors (validate user-params)]
-                  [::puter/goto :fail validation-errors]
-                  user-params))
+    {:pute  (fn [user-params]
+              (if-let [validation-errors (validate user-params)]
+                [::puter/goto :fail validation-errors]
+                user-params))
      ;; the vector [::puter/goto :fail new-parameter] tells graphputer to follow
-     ;; the `:fail` branch and to pass in `new-parameter` to that node's `:pute`
-     :default :insert-user
-     :fail    :validate-failed}
+     ;; the `:fail` edge and to pass in `new-parameter` to that node's `:pute`
+     :edges {:default :insert-user
+             :fail    :validate-failed}}
 
     :validate-failed
     {:pute (fn [validation-errors]
@@ -50,12 +50,12 @@ You can write something like this:
               :body   validation-errors})}
 
     :insert-user
-    {:pute    (fn [user-params]
-                (if-let [inserted-user (insert-user user-params)]
-                  inserted-user
-                  [::puter/goto :fail]))
-     :default :user-signup-success
-     :fail    :insert-user-failed}
+    {:pute  (fn [user-params]
+              (if-let [inserted-user (insert-user user-params)]
+                inserted-user
+                [::puter/goto :fail]))
+     :edges {:default :user-signup-success
+             :fail    :insert-user-failed}}
 
     :insert-user-failed
     {:pute (constantly {:status 500})}
@@ -95,13 +95,13 @@ successfully inserting their record in your db. You could do that like this:
 (def my-user-signup-graph
   (puter/splice-node
    user-signup-graph
-   :email-user-signup-success
-   {:pute (fn [inserted-user] (email-user inserted-user))}
-   :insert-user))
+   {:node-name       :email-user-signup-success
+    :node            {:pute (fn [inserted-user] (email-user inserted-user))}
+    :input-node-name :insert-user}))
 ```
 
 This will insert a new computation node under the `:email-user-signup-success
-key`, and changes the `:insert-user` node so that its `:default` points to
+key`, and changes the `:insert-user` node so that its `:default` edge points to
 `:email-user-signup-success`. The `:email-user-signup-success` node's `:default`
 points to `:user-signup-success`.
 

@@ -10,14 +10,15 @@
          (puter/execute
           {:id   :user-signup
            :init :validate
+
            :nodes
            {:validate
-            {:pute    (fn [ctx] ctx)
-             :default :insert-user}
+            {:pute  (fn [ctx] ctx)
+             :edges {:default :insert-user}}
 
             :insert-user
-            {:pute    (fn [ctx] ctx)
-             :default :user-signup-default}
+            {:pute  (fn [ctx] ctx)
+             :edges {:default :user-signup-default}}
 
             :user-signup-default
             {:pute (fn [ctx]
@@ -32,9 +33,9 @@
            :init :validate
            :nodes
            {:validate
-            {:pute    (fn [_] [::puter/goto :fail])
-             :default :insert-user
-             :fail    :validate-failure}
+            {:pute  (fn [_] [::puter/goto :fail])
+             :edges {:default :insert-user
+                     :fail    :validate-failure}}
 
             :validate-failure
             {:pute (fn [_] :validation-failed)}}}
@@ -47,9 +48,9 @@
            :init :validate
            :nodes
            {:validate
-            {:pute    (fn [_] [::puter/goto :fail :new-context])
-             :default :insert-user
-             :fail    :validate-failure}
+            {:pute  (fn [_] [::puter/goto :fail :new-context])
+             :edges {:default :insert-user
+                     :fail    :validate-failure}}
 
             :validate-failure
             {:pute (fn [ctx] ctx)}}}
@@ -61,29 +62,29 @@
           :init :validate
           :nodes
           {:validate
-           {:pute    identity
-            :default :validate-success}
+           {:pute  identity
+            :edges {:default :validate-success}}
 
            ;; this is spliced in in between :validate and :insert-user
            :validate-success
-           {:pute    identity
-            :default :insert-user}
+           {:pute  identity
+            :edges {:default :insert-user}}
 
            :insert-user
-           {:pute    identity
-            :default :user-signup-default}}}
+           {:pute  identity
+            :edges {:default :user-signup-default}}}}
          (puter/splice-node
           {:id   :user-signup
            :init :validate
            :nodes
            {:validate
-            {:pute    identity
-             :default :insert-user}
+            {:pute  identity
+             :edges {:default :insert-user}}
 
             :insert-user
-            {:pute    identity
-             :default :user-signup-default}}}
-          {:node-name         :validate-success
-           :node              {:pute identity}
-           :input-node-name   :validate
-           :input-branch-name :default}))))
+            {:pute  identity
+             :edges {:default :user-signup-default}}}}
+          {:node-name       :validate-success
+           :node            {:pute identity}
+           :input-node-name :validate
+           :input-edge-name :default}))))
