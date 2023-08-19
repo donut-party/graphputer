@@ -62,11 +62,11 @@
 
 
 {:pute    (fn [user-params]
-            (if-let [validation-errors (validate user-params)]
-              [::puter/goto :fail validation-errors]
-              user-params))
+            (if-let [user (insert-user user-params)]
+              user
+              [::puter/goto :fail insert-user-failed]))
  :edges   {:default :insert-user
-           :fail    :validate-failed}
+           :fail    :insert-user-failed}
  :schemas {::puter/input input-schema
            :default      default-schema
            :fail         fail-schema}}

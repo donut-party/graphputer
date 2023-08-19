@@ -30,11 +30,14 @@
                        :spec-explain       explanation})))))
 
 (defn execute
-  [{:keys [init nodes] :as _graph} ctx]
+  [{:keys [init nodes validate?]
+    :or   {validate? true}
+    :as   _graph}
+   ctx]
   (loop [node-name init
          ctx       ctx]
     (let [{:keys [pute edges schemas]} (node-name nodes)]
-      (validate-schema node-name schemas ::input ctx)
+      (when validate? (validate-schema node-name schemas ::input ctx))
       (let [result                    (pute ctx)
             [goto? edge-name new-ctx] (when (and (sequential? result)
                                                  (= ::goto (first result)))
@@ -42,15 +45,15 @@
         (cond
           goto?
           (do
-            (validate-schema node-name schemas edge-name new-ctx)
+            (when validate? (validate-schema node-name schemas edge-name new-ctx))
             (recur (edge-name edges) new-ctx))
 
           (:default edges)
           (do
-            (validate-schema node-name schemas :default result)
+            (when validate? (validate-schema node-name schemas :default result))
             (recur (:default edges) result))
 
           :else
           (do
-            (validate-schema node-name schemas ::output result)
+            (when validate? (validate-schema node-name schemas ::output result))
             result))))))

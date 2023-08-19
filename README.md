@@ -157,25 +157,36 @@ This example shows you'd handle the first to cases:
 
 ``` clojure
 {:pute    (fn [user-params]
-            (if-let [validation-errors (validate user-params)]
-              [::puter/goto :fail validation-errors]
-              user-params))
+            (if-let [user (insert-user user-params)]
+              user
+              [::puter/goto :fail insert-user-failed]))
  :edges   {:default :insert-user
-           :fail    :validate-failed}
+           :fail    :insert-user-failed}
  :schemas {::puter/input input-schema
            :default      default-schema
            :fail         fail-schema}}
 ```
 
-Under `:schemas`, `::puter/input` validates the value that will get passed in as
-`:user-params`. `:default` and `:fail` both correspond to edge names, and
-validate the values that will be passed along those edges (before they actually
-get passed).
+Under `:schemas`, `::puter/input` is a schema that's used to validate the
+argument that will get passed in to the `:pute` function as `user-params`.
+`:default` and `:fail` both correspond to edge names, and validate the values
+that will be passed along those edges (before they actually get passed).
 
 To validate a value that's meant to be the return value for the entire
 execution, you use the `::puter/output` key under `:schemas`.
 
 If validation fails, an exception gets thrown.
+
+If you want to execute without using schemas for validation, include `:validate?
+false` in your graph definition:
+
+``` clojure
+(def graph
+  {:id :my-id
+   :init :some-node-name
+   :validate? false
+   :nodes {}})
+```
 
 ## Isn't this a state machine?
 
