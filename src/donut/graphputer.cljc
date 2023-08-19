@@ -1,9 +1,10 @@
-(ns donut.graphputer)
-
-;; TODO exception handling
-;; TODO schemas for pre- and post- ctx
+(ns donut.graphputer
+  (:require
+   [malli.core :as m]
+   [malli.error :as me]))
 
 (defn splice-node
+  "inserts a node in the graph, re-wiring edges"
   [graph
    {:keys [node-name node input-node-name input-edge-name output-edge-name]
     :or   {input-edge-name  :default
@@ -15,20 +16,38 @@
         (assoc-in [:nodes input-node-name :edges input-edge-name]
                   node-name))))
 
+(defn validate-schema
+  [node-name schemas schema-name value]
+  (let [schema (schema-name schemas)]
+    (when-let [explanation (and schema (m/explain schema value))]
+      (throw (ex-info (str "Schema validation failed")
+                      {:node-name          node-name
+                       :schema-name        schema-name
+                       :spec-explain-human (me/humanize explanation)
+                       :spec-explain       explanation})))))
+
 (defn execute
   [{:keys [init nodes] :as _graph} ctx]
   (loop [node-name init
          ctx       ctx]
-    (let [{:keys [pute edges] :as node} (node-name nodes)
-          result                          (pute ctx)
-          [goto? edge-name new-ctx]     (when (and (sequential? result)
-                                                   (= ::goto (first result)))
-                                          result)]
-      (cond
-        goto?
-        (recur (get-in node [:edges edge-name]) new-ctx)
+    (let [{:keys [pute edges schemas]} (node-name nodes)]
+      (validate-schema node-name schemas ::input ctx)
+      (let [result                    (pute ctx)
+            [goto? edge-name new-ctx] (when (and (sequential? result)
+                                                 (= ::goto (first result)))
+                                        result)]
+        (cond
+          goto?
+          (do
+            (validate-schema node-name schemas edge-name new-ctx)
+            (recur (edge-name edges) new-ctx))
 
-        (:default edges)
-        (recur (:default edges) result)
+          (:default edges)
+          (do
+            (validate-schema node-name schemas :default result)
+            (recur (:default edges) result))
 
-        :else result))))
+          :else
+          (do
+            (validate-schema node-name schemas ::output result)
+            result))))))

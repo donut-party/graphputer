@@ -1,7 +1,7 @@
 (ns donut.graphputer-test
   (:require
-   #?(:clj [clojure.test :refer [deftest is]]
-      :cljs [cljs.test :refer [deftest is] :include-macros true])
+   #?(:clj [clojure.test :refer [deftest is testing]]
+      :cljs [cljs.test :refer [deftest is testing] :include-macros true])
    [donut.graphputer :as puter]))
 
 (deftest test-execute-all-default
@@ -56,7 +56,6 @@
             {:pute (fn [ctx] ctx)}}}
           {}))))
 
-
 (deftest test-splice-node
   (is (= {:id   :user-signup
           :init :validate
@@ -86,5 +85,61 @@
              :edges {:default :user-signup-default}}}}
           {:node-name       :validate-success
            :node            {:pute identity}
-           :input-node-name :validate
-           :input-edge-name :default}))))
+           :input-node-name :validate}))))
+
+(deftest test-schemas
+  (testing "validates pute input"
+    (is (thrown?
+         #?(:clj clojure.lang.ExceptionInfo
+            :cljs cljs.core/ExceptionInfo)
+         (puter/execute
+          {:id   :user-signup
+           :init :validate
+
+           :nodes
+           {:validate
+            {:pute    (fn [ctx] ctx)
+             :schemas {::puter/input [:map]}}}}
+          :not-a-map)))
+
+    (is (puter/execute
+         {:id   :user-signup
+          :init :validate
+
+          :nodes
+          {:validate
+           {:pute    (fn [ctx] ctx)
+            :schemas {::puter/input [:map]}}}}
+         {:is :a-map})))
+
+  (testing "validates edge output"
+    (is (thrown?
+         #?(:clj clojure.lang.ExceptionInfo
+            :cljs cljs.core/ExceptionInfo)
+         (puter/execute
+          {:id   :user-signup
+           :init :validate
+
+           :nodes
+           {:validate
+            {:pute    (fn [_] :not-a-map)
+             :edges   {:default :insert-user}
+             :schemas {:default [:map]}}
+
+            :insert-user
+            {:pute identity}}}
+          nil))))
+
+  (testing "validates output"
+    (is (thrown?
+         #?(:clj clojure.lang.ExceptionInfo
+            :cljs cljs.core/ExceptionInfo)
+         (puter/execute
+          {:id   :user-signup
+           :init :validate
+
+           :nodes
+           {:validate
+            {:pute    (fn [_] :not-a-map)
+             :schemas {::puter/output [:map]}}}}
+          nil)))))
