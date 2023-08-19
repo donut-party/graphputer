@@ -70,3 +70,9 @@
  :schemas {::puter/input input-schema
            :default      default-schema
            :fail         fail-schema}}
+
+(def graph
+  {:id :my-id
+   :init :some-node-name
+   :validate? false
+   :nodes {}})
