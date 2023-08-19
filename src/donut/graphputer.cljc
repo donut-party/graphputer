@@ -3,6 +3,9 @@
    [malli.core :as m]
    [malli.error :as me]))
 
+;; TODO splice-graph
+;; - TODO handle name collisions? throw exception if there's a collision?
+
 (defn splice-node
   "inserts a node in the graph, re-wiring edges"
   [graph

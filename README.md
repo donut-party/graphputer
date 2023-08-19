@@ -40,7 +40,8 @@ You can write something like this:
                 [::puter/goto :fail validation-errors]
                 user-params))
      ;; the vector [::puter/goto :fail new-parameter] tells graphputer to follow
-     ;; the `:fail` edge and to pass in `new-parameter` to that node's `:pute`
+     ;; the `:fail` edge (which points to the `:validate-failed` node here)
+     ;; and to pass in `new-parameter` to that node's `:pute`
      :edges {:default :insert-user
              :fail    :validate-failed}}
 
@@ -123,7 +124,7 @@ doing.
 ## How it works
 
 `donut.graphputer/execute` takes two arguments, a graph and the graph's initial
-execution parameter. When youc all `donut.graphputer/execute`, it looks the node
+execution parameter. When you call `donut.graphputer/execute`, it looks the node
 named by `:init` and calls its `:pute` function with one argument, the initial
 execution parameter. In the example above, `:validate`'s `:pute` gets called
 with the map `{:username "newuser"}`.
@@ -143,6 +144,38 @@ the example above, `:user-signup-success` gets called with the value returned by
 If there isn't another node to goto -- because `:default` isn't defined or
 `[:donut.graphputer/goto ...]` isn't returned, then execution stops and the last
 computed value is returned.
+
+### Validation
+
+You can supply malli schemas for:
+
+- The argument passed to `:pute`
+- The values that a node passes to downstream nodes
+- The value that a node returns directly
+
+This example shows you'd handle the first to cases:
+
+``` clojure
+{:pute    (fn [user-params]
+            (if-let [validation-errors (validate user-params)]
+              [::puter/goto :fail validation-errors]
+              user-params))
+ :edges   {:default :insert-user
+           :fail    :validate-failed}
+ :schemas {::puter/input input-schema
+           :default      default-schema
+           :fail         fail-schema}}
+```
+
+Under `:schemas`, `::puter/input` validates the value that will get passed in as
+`:user-params`. `:default` and `:fail` both correspond to edge names, and
+validate the values that will be passed along those edges (before they actually
+get passed).
+
+To validate a value that's meant to be the return value for the entire
+execution, you use the `::puter/output` key under `:schemas`.
+
+If validation fails, an exception gets thrown.
 
 ## Isn't this a state machine?
 

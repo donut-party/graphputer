@@ -2,16 +2,18 @@
   (:require
    [donut.graphputer :as puter]))
 
+(defn validate [_])
+(defn insert-user [_])
+
 (defn user-signup
   [params]
   (if-let [validation-errors (validate params)]
+    {:status 400
+     :body validation-errors}
     (if-let [user (insert-user params)]
       {:status 200
        :body   user}
-      {:status 500})
-    {:status 400
-     :body validation-errors}))
-
+      {:status 500})))
 
 (def user-signup-graph
   {:id   :user-signup
@@ -23,7 +25,8 @@
                 [::puter/goto :fail validation-errors]
                 user-params))
      ;; the vector [::puter/goto :fail new-parameter] tells graphputer to follow
-     ;; the `:fail` edge and to pass in `new-parameter` to that node's `:pute`
+     ;; the `:fail` edge (which points to the `:validate-failed` node here)
+     ;; and to pass in `new-parameter` to that node's `:pute`
      :edges {:default :insert-user
              :fail    :validate-failed}}
 
@@ -56,3 +59,14 @@
    {:node-name       :email-user-signup-success
     :node            {:pute (fn [inserted-user] (email-user inserted-user))}
     :input-node-name :insert-user}))
+
+
+{:pute    (fn [user-params]
+            (if-let [validation-errors (validate user-params)]
+              [::puter/goto :fail validation-errors]
+              user-params))
+ :edges   {:default :insert-user
+           :fail    :validate-failed}
+ :schemas {::puter/input input-schema
+           :default      default-schema
+           :fail         fail-schema}}
