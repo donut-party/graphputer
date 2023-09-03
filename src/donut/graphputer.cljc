@@ -1,7 +1,8 @@
 (ns donut.graphputer
   (:require
    [malli.core :as m]
-   [malli.error :as me]))
+   [malli.error :as me]
+   [clojure.data :as data]))
 
 ;; TODO splice-graph
 ;; - TODO handle name collisions? throw exception if there's a collision?
@@ -19,6 +20,18 @@
         (assoc-in [:nodes input-node-name :edges input-edge-name]
                   node-name))))
 
+(def NodesSchema
+  [:map-of :keyword [:map
+                     [:pute fn?]
+                     [:edges {:optional true} [:map-of :keyword :keyword]]
+                     [:schemas {:optional true} :map]]])
+
+(def GraphSchema
+  [:map
+   [:id :keyword]
+   [:init :keyword]
+   [:nodes NodesSchema]])
+
 (defn validate-schema
   [node-name schemas schema-name value]
   (let [schema (schema-name schemas)]
@@ -29,11 +42,35 @@
                        :spec-explain-human (me/humanize explanation)
                        :spec-explain       explanation})))))
 
+(defn validate-graph
+  [graph]
+  (when-let [explanation (m/explain GraphSchema graph)]
+    (throw (ex-info "graph definition invalid" {:spec-explain-human (me/humanize explanation)
+                                                :spec-explain explanation})))
+
+  (when-not (get-in graph [:nodes (:init graph) :pute])
+    (throw (ex-info ":init does not refer to valid node" (select-keys graph [:init]))))
+
+  (let [defined-node-names                  (set (keys (:nodes graph)))
+        referenced-node-names               (->> graph
+                                                 :nodes
+                                                 vals
+                                                 (mapcat (comp vals :edges))
+                                                 (into #{(:init graph)}))
+        [unreachable-nodes undefined-nodes] (data/diff defined-node-names referenced-node-names)]
+
+    (when (seq undefined-nodes)
+      (throw (ex-info "node edges refer to undefined nodes" {:undefined-nodes undefined-nodes})))
+
+    (when (seq unreachable-nodes)
+      (throw (ex-info "nodes defined but no edges refer to them" {:unreachable-nodes unreachable-nodes})))))
+
 (defn execute
   [{:keys [init nodes validate?]
     :or   {validate? true}
-    :as   _graph}
+    :as   graph}
    ctx]
+  (validate-graph graph)
   (loop [node-name init
          ctx       ctx]
     (let [{:keys [pute edges schemas]} (node-name nodes)]

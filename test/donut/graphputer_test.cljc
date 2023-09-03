@@ -34,8 +34,7 @@
            :nodes
            {:validate
             {:pute  (fn [_] [::puter/goto :fail])
-             :edges {:default :insert-user
-                     :fail    :validate-failure}}
+             :edges {:fail    :validate-failure}}
 
             :validate-failure
             {:pute (fn [_] :validation-failed)}}}
@@ -49,8 +48,7 @@
            :nodes
            {:validate
             {:pute  (fn [_] [::puter/goto :fail :new-context])
-             :edges {:default :insert-user
-                     :fail    :validate-failure}}
+             :edges {:fail    :validate-failure}}
 
             :validate-failure
             {:pute (fn [ctx] ctx)}}}
@@ -143,3 +141,29 @@
             {:pute    (fn [_] :not-a-map)
              :schemas {::puter/output [:map]}}}}
           nil)))))
+
+(deftest validate-graph-:init
+  (testing "throws when :init refers to invalid nodes"
+    (is (thrown-with-msg?
+         #?(:clj clojure.lang.ExceptionInfo
+            :cljs cljs.core/ExceptionInfo)
+         #":init does not refer to valid node"
+         (puter/execute
+          {:id :test
+           :init :nonexistent-node
+           :nodes {}}
+          {}))))
+
+  (testing "throws when node edges refer to undefined nodes"
+    (is (thrown-with-msg?
+         #?(:clj clojure.lang.ExceptionInfo
+            :cljs cljs.core/ExceptionInfo)
+         #"node edges refer to undefined nodes"
+         (puter/execute
+          {:id :test
+           :init :start
+           :nodes
+           {:start
+            {:pute (fn [_])
+             :edges {:default :undefined-node}}}}
+          {})))))
